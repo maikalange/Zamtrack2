@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Zam-Track</title>
+    <link rel="stylesheet" href="jquery/development-bundle/themes/base/jquery.ui.all.css" />
+    <script src="jquery/development-bundle/jquery-1.5.1.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.core.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.widget.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.datepicker.js"></script>
+    <link href="js/jdpicker.css" rel="stylesheet" type="text/css" />
+    <link href="StyleSheet.css" rel="stylesheet" type="text/css" />
+        <script src="jquery/development-bundle/ui/i18n/jquery.ui.datepicker-en-GB.js"></script>
+
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <script>
+
+        $(function () {
+            var dates = $("#from, #to").datepicker({
+                defaultDate: "+1w",
+                changeMonth: true,
+                //regional:"en-gb",
+                numberOfMonths: 3,
+                onSelect: function (selectedDate) {
+                    var option = this.id == "from" ? "minDate" : "maxDate",
+					instance = $(this).data("datepicker"),
+					date = $.datepicker.parseDate(
+						instance.settings.dateFormat ||
+						$.datepicker._defaults.dateFormat,
+						selectedDate, instance.settings);
+                    dates.not(this).datepicker("option", option, date);
+                }
+            });
+        });
+    </script>
+    	<script>
+    	    $(function () {
+    	        $("#from").datepicker($.datepicker.regional["en-gb"]);
+    	        $("#to").datepicker($.datepicker.regional["en-gb"]);
+    	    });
+	</script> 
+    <script type="text/javascript">
+        function plotVehiclePath(deviceData) {
+            var p = eval("(" + deviceData + ")");
+            var coordinates = new Array();
+            for (var i = 0; i < p.length; i++) {
+                coordinates.push(new google.maps.LatLng(p[i].Lat, p[i].Long));
+            }
+
+            var myLatLng = new google.maps.LatLng(51.355725, -0.185963333333333);
+            var myOptions = { zoom: 15, center: myLatLng, mapTypeId: google.maps.MapTypeId.ROADMAP };
+            var map = new google.maps.Map(document.getElementById("leftcol"), myOptions);
+
+            var vehiclePath = new google.maps.Polyline({ path: coordinates, strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
+            vehiclePath.setMap(map);
+        }
+
+        function getSelectedDevice() {
+            return document.getElementById("devices").value;
+        }
+
+        function getStartDate() {
+            return document.getElementById("from").value;
+        }
+
+        function getEndDate() {
+            return document.getElementById("to").value;
+        }
+
+        function addOption(selectbox, text, value) {
+            var optn = document.createElement("OPTION");
+            optn.text = text;
+            optn.value = value;
+            selectbox.options.add(optn);
+        }
+
+        function bindDeviceList(deviceList) {
+            var devices = new Array();
+            var p = eval("(" + deviceList + ")");
+
+            for (var i = 0; i < p.length; i++) {
+                addOption(document.getElementById("devices"), p[i].DeviceId, p[i].DeviceId);
+            }
+        }
+
+        function getDevices() {
+            var req = new XMLHttpRequest();
+            //get selected deviceId
+            req.open('GET', 'ZamTrackJsonHandler.ashx?&cmd=DISTINCT_DEVICES' + '&timeStamp=' + Number(new Date()), true);
+            req.onreadystatechange = function (aEvt) {
+                if (req.readyState == 4) {
+                    if (req.status == 200) {
+                        bindDeviceList(req.responseText);
+                    }
+                    else
+                        alert(req.responseText);
+                }
+            };
+            req.send(null);
+        }
+
+        function displayVehiclePathForDateRange() {
+            var req = new XMLHttpRequest();
+            var timestamp = Number(new Date())
+            //get selected deviceId
+            req.open('GET', 'ZamTrackJsonHandler.ashx?from=' + getStartDate() + '&to=' + getEndDate() + '&cmd=VEHICLE_PATH_FOR_DATE_RANGE&deviceId=' + getSelectedDevice() + '&timeStamp=' + Number(new Date()), true);
+            req.onreadystatechange = function (aEvt) {
+                if (req.readyState == 4) {
+                    if (req.status == 200) {
+                        plotVehiclePath(req.responseText);
+                    }
+                    else
+                        alert("Error loading page...\n");
+                }
+            };
+            req.send(null);
+        }
+
+        function initialise() {
+            displayVehiclePathForDateRange();
+            getDevices();
+        }
+
+    </script>
+    <style type="text/css">
+        #from
+        {
+            width: 75px;
+        }
+        #to
+        {
+            width: 75px;
+        }
+    </style>
+</head>
+<body onload="initialise();">
+    <div id="pagewidth">
+        <div id="wrapper" class="clearfix">
+            <div id="twocols">
+                <div id="rightcol">
+                    <select id="devices" onchange="displayVehiclePathForDateRange()">
+                        <option value="-1">Select device...</option>
+                    </select>
+                    <input type="text" id="from" /> <input type="text" id="to" />
+                    <table style="width: 100%;" border="1">
+                        <tr>
+                            <td>
+                                <b>&nbsp;
+                                Date</b></td>
+                            <td>
+                                <b>&nbsp;
+                                Speed</b></td>
+                            <td>
+                                <b>&nbsp;
+                                Location</b></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                &nbsp;
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                &nbsp;
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                        </tr>
+                    </table>
+                    <img alt="GPS speed graph" border="1" hspace="0" 
+                        src="http://www.ehobbycorner.com/images/gps_speed_graph.gif" 
+                        style="width: 280px; height: 201px" vspace="0" />
+                    <table style="width: 100%;">
+                        <tr>
+                            <td colspan="3">
+                                &nbsp;
+                                DLZ 3912&nbsp;
+                                &nbsp;
+                                JEEP GRAND CHEROKEE</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                &nbsp;
+                                JOSEPH NYIRENDA&nbsp;
+                                &nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                &nbsp;
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                &nbsp;</td>
+                            <td>
+                                &nbsp;</td>
+                            <td>
+                                &nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div id="leftcol">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

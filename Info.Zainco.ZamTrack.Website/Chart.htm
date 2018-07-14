@@ -1,0 +1,124 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title>Charting</title>
+    <link rel="stylesheet" href="jquery/development-bundle/themes/base/jquery.ui.all.css" />
+    <link href="js/jdpicker.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.6/dijit/themes/claro/claro.css" />
+    <script src="jquery/development-bundle/jquery-1.5.1.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.core.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.widget.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.tabs.js"></script>
+    <script src="jquery/development-bundle/ui/jquery.ui.datepicker.js"></script>
+    <script src="jquery/development-bundle/external/jquery.cookie.js"></script>
+    <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <script src="jquery/development-bundle/ui/i18n/jquery.ui.datepicker-en-GB.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/dojo/1.6/dojo/dojo.xd.js" djconfig="parseOnLoad: true">
+    </script>
+    <script type="text/javascript">
+        dojo.require("dijit.form.TimeTextBox");
+        dojo.require("dijit.form.DateTextBox");
+        dojo.require("dojo.data.ItemFileReadStore");
+        dojo.require("dojox.charting.themes.Tom");
+        dojo.require("dojox.grid.DataGrid");
+        dojo.require("dojo.data.ItemFileReadStore");
+        $(function () {
+            $.datepicker.setDefaults($.datepicker.regional['en-gb']);
+            var dates = $("#from, #to").datepicker({
+                defaultDate: "+1w",
+                changeMonth: true,
+                numberOfMonths: 2,
+                onSelect: function (selectedDate) {
+                    var option = this.id == "from" ? "minDate" : "maxDate",
+					instance = $(this).data("datepicker"),
+					date = $.datepicker.parseDate(
+						instance.settings.dateFormat ||
+						$.datepicker._defaults.dateFormat,
+						selectedDate, instance.settings);
+                    dates.not(this).datepicker("option", option, date);
+                }
+            });
+        });
+
+
+        function averageVehicleSpeed(data) {
+            var totalVehicleSpeed = 0;
+            for (var i = 0; i < data.length; i++) {
+                totalVehicleSpeed = data[i] + totalVehicleSpeed;
+            }
+
+            return totalVehicleSpeed / data.length;
+        }
+
+        function plotVehicleSpeed() {
+            document.getElementById("simplechart").innerHTML = "";
+            var from = (document.getElementById('from').value);
+            var to = (document.getElementById('to').value);
+
+            var startTime = document.getElementById("time1").value;
+            var endTime = document.getElementById("time2").value;
+
+            if (from == "" || to == "") {
+                return;
+            }
+
+            var deviceId = 500751504;
+
+            var xhrArgs = {
+                url: "ZamTrackJsonHandler.ashx?from=" + from + "&to=" + to + "&cmd=DEVICE_SPEED_HISTORY&deviceId=" + deviceId + "&startTime=" + startTime + "&endTime=" + endTime,
+                handleAs: "json",
+                preventCache: true,
+                load: function (data) {
+                    dojo.require("dojox.charting.Chart2D");
+                    makeCharts = function () {
+                        document.getElementById("averageSpeedLbl").innerHTML = "Generating graph...";
+                        var dataObject = new Array(data);
+                        var chart1 = new dojox.charting.Chart2D("simplechart");
+
+                        if (dataObject[0].length > 0) {
+                            chart1
+                        .addPlot("default", { type: "Lines", tension: "X", lines: true, areas: false, markers: false })
+                        .addAxis("x")
+                        .addAxis("y", { vertical: true })
+                        .addSeries("Series 1", dataObject[0], {
+                            stroke: {
+                                color: "red",
+                                width: 0.5
+                            },
+                            fill: "#123456"
+                        }).render();
+                        }
+                        document.getElementById("averageSpeedLbl").innerHTML = "<b>Average speed " + averageVehicleSpeed((dataObject[0])) + " km/hr </b>";
+
+                    };
+
+                    dojo.addOnLoad(makeCharts);
+
+                },
+                error: function (error) {
+                    alert("An unexpected error occurred: " + error);
+                }
+            }
+            var deferred = dojo.xhrGet(xhrArgs);
+        }
+
+        dojo.addOnLoad(plotVehicleSpeed);
+
+    </script>
+</head>
+
+    <input type="text" id="from" />
+    <input type="text" name="date1" id="time1" value="T12:00:00" dojotype="dijit.form.TimeTextBox"
+        required="true" /><br />
+    <input type="text" id="to" />
+    <input type="text" name="date1" id="time2" value="T12:00:00" dojotype="dijit.form.TimeTextBox"
+        required="true" /><br />
+    <button name="submit" value="update chart" title="update chart" onclick="javascript:plotVehicleSpeed();"
+        style="width: 97px" class="button">
+        apply</button>
+    <label id="averageSpeedLbl">
+    </label>
+    <div id="simplechart" style="width: 500px; height: 350px; margin-left: auto; margin-right: auto"
+        class="content">
+    </div>
+</html>
